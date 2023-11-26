@@ -29,6 +29,40 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
 
+        const adminUserCollection = await client.db("assetDB").collection("adminUsers")
+        const employeeUserCollection = await client.db("assetDB").collection("employeeUsers")
+
+
+        //admin user collection
+        app.post('/adminUsers', async (req, res) => {
+            const user = req.body;
+
+            const query = { email: user.email }
+            const existingUser = await adminUserCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ message: 'User already exists', insertedId: null })
+            }
+            const result = await adminUserCollection.insertOne(user);
+            res.send(result)
+        })
+
+
+
+        //employee user collection
+        app.post('/employeeUsers', async (req, res) => {
+            const user = req.body;
+
+            const query = { email: user.email }
+            const existingUser = await employeeUserCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ message: 'User already exists', insertedId: null })
+            }
+            const result = await employeeUserCollection.insertOne(user);
+            res.send(result)
+        })
+
+
+
 
 
         //payment method
