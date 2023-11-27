@@ -34,6 +34,57 @@ async function run() {
         const adminUserCollection = await client.db("assetDB").collection("adminUsers")
         const employeeUserCollection = await client.db("assetDB").collection("employeeUsers")
 
+        // require('crypto').randomBytes(64).toString('hex')
+        //jwt token create
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECURE, { expiresIn: '100001h' });
+            res.send({ token })
+        })
+
+        // create middleware verify token
+        const verifyToken = (req, res, next) => {
+            // console.log(req.headers);
+            if (!req.headers.authorization) {
+                return res.status(401).send({ message: 'unauthorized access token' })
+            }
+            const token = req.headers.authorization.split(' ')[1];
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECURE, (err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: 'unauthorized access token' })
+                }
+                req.decoded = decoded;
+                next();
+            })
+
+        }
+
+
+        //use verify Admin after verify token
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await adminUserCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden access token' })
+            }
+            next();
+        }
+
+
+        //use verify Employee after verify token
+        const verifyEmployee = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await employeeUserCollection.findOne(query);
+            const isEmployee = user?.role === 'employee';
+            if (!isEmployee) {
+                return res.status(403).send({ message: 'forbidden access token' })
+            }
+            next();
+        }
+
 
         //admin user collection
         app.post('/adminUsers', async (req, res) => {
