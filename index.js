@@ -1,12 +1,14 @@
+require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const app = express();
 const cors = require('cors')
 const port = process.env.PORT || 5000;
-require('dotenv').config()
 
+
+// console.log(process.env.STRIPE_SECRET_KEY);
 //middleware
 app.use(cors())
 app.use(express.json());
@@ -46,6 +48,11 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/adminUsers', async (req, res) => {
+            const result = await adminUserCollection.find().toArray();
+            res.send(result)
+        })
+
 
 
         //employee user collection
@@ -63,8 +70,6 @@ async function run() {
 
 
 
-
-
         //payment method
         app.post('/create-payment-intent', async (req, res) => {
             const { price } = req.body;
@@ -75,10 +80,13 @@ async function run() {
                 currency: 'usd',
                 payment_method_types: ['card']
             })
+            console.log("payment tk dollar asse", paymentIntent);
             res.send({
-                clientSecret: paymentIntent.client_secret
+                clientSecret: paymentIntent.client_secret,
             })
         })
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
