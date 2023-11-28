@@ -10,7 +10,13 @@ const port = process.env.PORT || 5000;
 
 // console.log(process.env.STRIPE_SECRET_KEY);
 //middleware
-app.use(cors())
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'http://localhost:5174',
+    ],
+    credentials: true
+}))
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fgd8wc9.mongodb.net/?retryWrites=true&w=majority`;
@@ -33,6 +39,9 @@ async function run() {
 
         const adminUserCollection = await client.db("assetDB").collection("adminUsers")
         const employeeUserCollection = await client.db("assetDB").collection("employeeUsers")
+        const addItemCollection = await client.db("assetDB").collection("addItems")
+
+
 
         // require('crypto').randomBytes(64).toString('hex')
         //jwt token create
@@ -44,7 +53,6 @@ async function run() {
 
         // create middleware verify token
         const verifyToken = (req, res, next) => {
-            // console.log(req.headers);
             if (!req.headers.authorization) {
                 return res.status(401).send({ message: 'unauthorized access token' })
             }
@@ -99,39 +107,131 @@ async function run() {
             res.send(result)
         })
 
+
         app.get('/adminUsers', async (req, res) => {
             const result = await adminUserCollection.find().toArray();
             res.send(result)
         })
 
+        app.get('/adminUsers/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email }
+            const user = await adminUserCollection.findOne(query)
+            const admin = user?.role === 'admin' && true;
+            if (!admin) {
+                return res.status(403).send({ message: 'forbidden access token' })
+            }
+            res.send({ admin });
+        })
 
 
         //employee user collection
         app.post('/employeeUsers', async (req, res) => {
             const user = req.body;
-
             const query = { email: user.email }
+
             const existingUser = await employeeUserCollection.findOne(query);
             if (existingUser) {
                 return res.send({ message: 'User already exists', insertedId: null })
             }
+
             const result = await employeeUserCollection.insertOne(user);
             res.send(result)
         })
 
+        app.get('/employeeUsers/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email }
+            const user = await employeeUserCollection.findOne(query)
+            const employee = user?.role === 'employee' && true;
+            if (!employee) {
+                return res.status(403).send({ message: 'forbidden access token' })
+            }
+            res.send({ employee });
+        })
+
+
+        //add items collection
+        app.post('/addItems', async (req, res) => {
+            const items = req.body;
+            const result = await addItemCollection.insertOne(items);
+            res.send(result)
+        })
+
+        app.get('/addItems', async (req, res) => {
+            let queryType = {};
+            let filter = {};
+            const min = parseFloat(req.query.min);
+            const max = parseFloat(req.query.max);
+            const search = req.query.search;
+            const filterType = req.query.filter;
+
+            if (min || max) {
+                if (!isNaN(min) && !isNaN(max)) {
+                    filter = { quantity: { $gte: min, $lte: max } };
+                } else if (!isNaN(min)) {
+                    filter = { quantity: { $gte: min } };
+                } else if (!isNaN(max)) {
+                    filter = { quantity: { $lte: max } };
+                }
+            }
+
+            if (filterType) {
+                queryType.type = filterType;
+            }
+
+            const itemResult = {
+                name: { $regex: search, $options: 'i' },
+            };
+
+            const result = await addItemCollection.find(itemResult, queryType, filter,).toArray();
+            res.send(result)
+        })
+
+
+        app.get("/addItems/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await addItemCollection.findOne(query);
+            res.send(result)
+        })
+
+        app.patch("/addItems/:id", async (req, res) => {
+            const item = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    name: item.name,
+                    image: item.image,
+                    productType: item.productType,
+                    quantity: item.quantity,
+                    price: item.price,
+                    type: item.type,
+                    name: item.name,
+                }
+            }
+            const result = await addItemCollection.updateOne(filter, updatedDoc)
+            res.send(result)
+        })
+
+        app.delete("/addItems/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await addItemCollection.deleteOne(query)
+            res.send(result);
+        })
 
 
         //payment method
         app.post('/create-payment-intent', async (req, res) => {
             const { price } = req.body;
             const amount = parseInt(price * 100);
-            console.log("amount item inside the item", amount);
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: 'usd',
                 payment_method_types: ['card']
             })
-            console.log("payment tk dollar asse", paymentIntent);
             res.send({
                 clientSecret: paymentIntent.client_secret,
             })
@@ -140,8 +240,8 @@ async function run() {
 
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
