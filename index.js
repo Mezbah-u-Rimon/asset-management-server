@@ -122,7 +122,20 @@ async function run() {
             if (!admin) {
                 return res.status(403).send({ message: 'forbidden access token' })
             }
-            res.send({ admin });
+            res.send({ user, admin });
+        })
+
+        app.patch("/adminUsers/:id", async (req, res) => {
+            const item = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    members: item.members,
+                }
+            }
+            const result = await adminUserCollection.updateOne(filter, updatedDoc)
+            res.send(result)
         })
 
 
