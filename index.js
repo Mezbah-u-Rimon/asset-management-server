@@ -210,7 +210,6 @@ async function run() {
             res.send(result)
         })
 
-
         app.get("/addItems/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
@@ -248,10 +247,37 @@ async function run() {
         // add a requested item
         app.post('/requestItem', async (req, res) => {
             const item = req.body;
-            // console.log(item);
             const result = await requestItemCollection.insertOne(item);
             res.send(result);
         })
+
+        app.get('/requestItem/:email', async (req, res) => {
+            let queryType = {};
+            const search = req.query.search;
+            const filterType = req.query.filter;
+            const email = req.params.email;
+
+            const query = { requesterEmail: email }
+
+            if (filterType) {
+                queryType.type = filterType;
+            }
+
+            const itemResult = {
+                name: { $regex: search, $options: 'i' },
+            };
+
+            const result = await requestItemCollection.find(query, itemResult, queryType,).toArray();
+            res.send(result)
+        })
+
+        app.delete("/requestItem/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await requestItemCollection.deleteOne(query)
+            res.send(result);
+        })
+
 
 
         //add the team member collection
