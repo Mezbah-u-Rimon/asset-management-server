@@ -1,5 +1,5 @@
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 const express = require('express');
@@ -41,6 +41,7 @@ async function run() {
         const employeeUserCollection = await client.db("assetDB").collection("employeeUsers")
         const addItemCollection = await client.db("assetDB").collection("addItems")
         const addTeamCollection = await client.db("assetDB").collection("addTeam")
+        const requestItemCollection = await client.db("assetDB").collection("requestItem")
 
 
 
@@ -244,6 +245,15 @@ async function run() {
         })
 
 
+        // add a requested item
+        app.post('/requestItem', async (req, res) => {
+            const item = req.body;
+            // console.log(item);
+            const result = await requestItemCollection.insertOne(item);
+            res.send(result);
+        })
+
+
         //add the team member collection
         app.post('/addTeam', async (req, res) => {
             const member = req.body;
@@ -253,10 +263,10 @@ async function run() {
 
         app.get("/addTeam/:email", async (req, res) => {
             const email = req.params.email;
-            const query = {
-                adminEmail: email
-            }
-            const result = await addTeamCollection.find(query).toArray();
+
+            const query = { adminEmail: email }
+            const queryEmail = { email: email }
+            const result = await addTeamCollection.find(query, queryEmail).toArray();
             res.send(result)
         })
 
@@ -266,7 +276,6 @@ async function run() {
             const result = await addTeamCollection.deleteOne(query)
             res.send(result);
         })
-
 
 
         //payment method
@@ -294,8 +303,6 @@ async function run() {
     }
 }
 run().catch(console.dir);
-
-
 
 
 app.get('/', (req, res) => {
