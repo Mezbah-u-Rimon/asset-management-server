@@ -1,5 +1,5 @@
-require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+require('dotenv').config()
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 const express = require('express');
@@ -40,6 +40,7 @@ async function run() {
         const adminUserCollection = await client.db("assetDB").collection("adminUsers")
         const employeeUserCollection = await client.db("assetDB").collection("employeeUsers")
         const addItemCollection = await client.db("assetDB").collection("addItems")
+        const addTeamCollection = await client.db("assetDB").collection("addTeam")
 
 
 
@@ -151,6 +152,13 @@ async function run() {
         })
 
 
+        app.get('/employeeUsers', async (req, res) => {
+            const result = await employeeUserCollection.find().toArray();
+            res.send(result)
+        })
+
+
+
         //add items collection
         app.post('/addItems', async (req, res) => {
             const items = req.body;
@@ -221,6 +229,31 @@ async function run() {
             const result = await addItemCollection.deleteOne(query)
             res.send(result);
         })
+
+
+        //add the team member collection
+        app.post('/addTeam', async (req, res) => {
+            const member = req.body;
+            const result = await addTeamCollection.insertOne(member);
+            res.send(result)
+        })
+
+        app.get("/addTeam/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = {
+                adminEmail: email
+            }
+            const result = await addTeamCollection.find(query).toArray();
+            res.send(result)
+        })
+
+        app.delete("/addTeam/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await addTeamCollection.deleteOne(query)
+            res.send(result);
+        })
+
 
 
         //payment method
