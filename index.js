@@ -251,6 +251,17 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/requestItem', async (req, res) => {
+            const search = req.query.search;
+            const itemSearch = {
+                productName: { $regex: search, $options: 'i' },
+            };
+
+            const result = await requestItemCollection.find(itemSearch).toArray();
+            res.send(result)
+        })
+
+
         app.get('/requestItem/:email', async (req, res) => {
             let queryType = {};
             const search = req.query.search;
@@ -264,10 +275,26 @@ async function run() {
             }
 
             const itemResult = {
-                name: { $regex: search, $options: 'i' },
+                productName: { $regex: search, $options: 'i' },
             };
 
             const result = await requestItemCollection.find(query, itemResult, queryType,).toArray();
+            res.send(result)
+        })
+
+
+        app.patch("/requestItem/:id", async (req, res) => {
+            const item = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    approved: item.approved,
+                    pending: item.pending,
+                    approvalDate: item.approvalDate,
+                }
+            }
+            const result = await requestItemCollection.updateOne(filter, updatedDoc)
             res.send(result)
         })
 
