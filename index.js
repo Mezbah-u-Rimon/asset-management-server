@@ -14,6 +14,7 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:5174',
+        'https://asset-management-website.netlify.app'
     ],
     credentials: true
 }))
@@ -168,6 +169,19 @@ async function run() {
 
         app.get('/employeeUsers', async (req, res) => {
             const result = await employeeUserCollection.find().toArray();
+            res.send(result)
+        })
+
+        app.patch('/employeeUsers/:id', async (req, res) => {
+            const item = req.body;
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    approved: item.approved,
+                }
+            }
+            const result = await employeeUserCollection.updateOne(filter, updatedDoc)
             res.send(result)
         })
 
