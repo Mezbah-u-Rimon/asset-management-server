@@ -14,7 +14,9 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:5174',
-        'https://asset-management-website.netlify.app'
+        'https://asset-management-website.netlify.app',
+        'https://656c965e8dc25f12fd3b6df9--asset-management-0001.netlify.app',
+        'https://asset-management-0001.netlify.app'
     ],
     credentials: true
 }))
